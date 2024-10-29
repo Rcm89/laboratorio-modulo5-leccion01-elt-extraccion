@@ -2,12 +2,12 @@ import sys
 import os
 import http.client
 import json
-import pandas as pd # type: ignore
+import pandas as pd 
 import asyncio
 
 import sys
 sys.path.append("../")
-from src import soporte as sop
+from src import soporte_codigos as sop
 
 async def obtener_datos_demanda_evolucion(input_anio, geo_ids):
 
@@ -40,7 +40,7 @@ async def obtener_datos_demanda_evolucion(input_anio, geo_ids):
 
 async def guardar_datos_en_csv():
      list_anios=[2019,2020,2021]
-     for x, y in sop.cod_comunidades.items():
+     for x, y in sop.codigos_comunidades.items():
         for i in list_anios:
             diccionario = await obtener_datos_demanda_evolucion(i, y)
             df_final = pd.DataFrame(diccionario)
