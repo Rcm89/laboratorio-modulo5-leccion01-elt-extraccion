@@ -8,7 +8,7 @@ import sys
 sys.path.append("../")
 from src import soporte as sop
 
-async def obtener_datos_demanda_generacion(input_anio, geo_ids):
+def obtener_datos_demanda_generacion(input_anio, geo_ids):
 
     result = dict()
     dicc_datos = dict()
@@ -37,11 +37,11 @@ async def obtener_datos_demanda_generacion(input_anio, geo_ids):
         print(f"Error en la peticion a la api, en obtener_datos_demanda_generacion: {url}")
     return result
 
-async def guardar_datos_en_csv():
+def guardar_datos_en_csv():
      list_anios=[2019,2020,2021]
      for x, y in sop.codigos_comunidades.items():
         for i in list_anios:
-            diccionario = await obtener_datos_demanda_generacion(i, y)
+            diccionario = obtener_datos_demanda_generacion(i, y)
             df_final = pd.DataFrame(diccionario)
 
             if df_final.shape[0] > 0:
