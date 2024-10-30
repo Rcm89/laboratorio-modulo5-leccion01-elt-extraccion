@@ -1,49 +1,30 @@
 import sys
 import os
-import http.client
+
 import json
 import pandas as pd 
-import asyncio
 
-import sys
+import requests
+import os
 sys.path.append("../")
+
 from src import soporte_codigos as sop
 
-def obtener_datos_demanda_evolucion(input_anio, geo_ids):
 
-    result = dict()
-    try:
-        anio = input_anio
+def obtener_datos_demanda(lista_anios, ruta, headers):
 
-        conn = http.client.HTTPSConnection("apidatos.ree.es")
+    for anio in lista_anios:
+        for nombre, ccaa in sop.codigos_comunidades.items():
+            
+            url_demanda=f"https://apidatos.ree.es/es/datos/demanda/evolucion?start_date={anio}-01-01T00:00&end_date={anio}-12-31T23:59&time_trunc=month&geo_trunk=electric_system&geo_limit=ccaa&geo_ids={ccaa}"
+            response = requests.get(url_demanda, headers=headers)
+            if response.status_code != 200:
+                continue
+            else:
+                responsa= response.json()  
+                df_demanda= pd.DataFrame(responsa['included'][0]['attributes']['values']) 
+                df_demanda["cod_ccaa"]= ccaa
+                df_demanda.to_csv(os.path.join(ruta, f'{nombre}_{anio}.csv'))
 
-        headers = {
-            "Accept": "application/json;",
-            "Content-Type": "application/json",
-            "Host": "apidatos.ree.es"
-        }
-
-        url = f"/es/datos/demanda/evolucion?start_date={input_anio}-01-01T00:00&end_date={input_anio}-12-31T23:59&time_trunc=month&geo_limit=ccaa&geo_ids={geo_ids}"
-
-        conn.request("GET", url, headers=headers)
-
-        res = conn.getresponse()
-        data = res.read()
-
-        dicc_datos = json.loads(data.decode("utf-8"))
-
-        result = dicc_datos['included'][0]['attributes']['values']
-
-    except:
-        print(f"Error en la peticion a la api, en obtener_datos: {url}")
-    return result
-
-def guardar_datos_en_csv():
-     list_anios=[2019,2020,2021]
-     for x, y in sop.codigos_comunidades.items():
-        for i in list_anios:
-            diccionario = obtener_datos_demanda_evolucion(i, y)
-            df_final = pd.DataFrame(diccionario)
-            df_final.to_csv(f"../data/{i}_demanda_evolucion_{x}_{y}.csv")
-
+    return df_demanda
 

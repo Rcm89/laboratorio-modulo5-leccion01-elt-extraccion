@@ -2,49 +2,34 @@ import sys
 import os
 import http.client
 import json
-import pandas as pd # type: ignore
-
-import sys
+import pandas as pd
+import requests
+import os
 sys.path.append("../")
-from src import soporte as sop
 
-def obtener_datos_demanda_generacion(input_anio, geo_ids):
+from src import soporte_codigos as sop
 
-    result = dict()
-    dicc_datos = dict()
-    try:
-        anio = input_anio
 
-        conn = http.client.HTTPSConnection("apidatos.ree.es")
+def obtener_datos_generacion(lista_anios, ruta, headers):
 
-        headers = {
-            "Accept": "application/json;",
-            "Content-Type": "application/json",
-            "Host": "apidatos.ree.es"
-        }
+    for anio in lista_anios:
+        for nombre, ccaa in sop.codigos_comunidades.items():
+            
+            url_oferta=f"https://apidatos.ree.es/es/datos/generacion/estructura-renovables?start_date={anio}-01-01T00:00&end_date={anio}-12-31T23:59&time_trunc=month&geo_trunk=electric_system&geo_limit=ccaa&geo_ids={ccaa}"
 
-        url = f"/es/datos/generacion/estructura-renovables?start_date={anio}-01-01T00:00&end_date={anio}-12-31T23:59&time_trunc=month&geo_trunc=electric_system&geo_limit=ccaa&geo_ids={geo_ids}"
-        conn.request("GET", url, headers=headers)
+            response = requests.get(url_oferta, headers=headers)
+            if response.status_code != 200:
+                continue
+            else:
+                responsa= response.json()  
+                df_completo= pd.DataFrame()
+                for i in range(0, len(responsa['included'])):
+                    df_tipo=pd.DataFrame(responsa['included'][i]['attributes']['values'])
+                    df_tipo["type"]= responsa["included"][i]["type"]
+                    df_tipo["cod_ccaa"]= ccaa
+                    df_completo= pd.concat([df_completo, df_tipo ])
+                df_generacion= df_completo.to_csv(os.path.join(ruta, f'{nombre}_{anio}.csv'))
 
-        res = conn.getresponse()
-
-        if res.status == 200:
-            data = res.read()
-            dicc_datos = json.loads(data.decode("utf-8"))
-            result = dicc_datos['included']
-
-    except:
-        print(f"Error en la peticion a la api, en obtener_datos_demanda_generacion: {url}")
-    return result
-
-def guardar_datos_en_csv():
-     list_anios=[2019,2020,2021]
-     for x, y in sop.codigos_comunidades.items():
-        for i in list_anios:
-            diccionario = obtener_datos_demanda_generacion(i, y)
-            df_final = pd.DataFrame(diccionario)
-
-            if df_final.shape[0] > 0:
-                df_final.to_csv(f"../data/{i}_generacion_estructura_{x}_{y}.csv")
+    return df_generacion
 
 
